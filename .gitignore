@@ -29,3 +29,4 @@ yarn.lock
 .browser-data
 .cookies.json
 .headers.json
+.site.json

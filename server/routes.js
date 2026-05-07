@@ -1,6 +1,6 @@
 const { loadCookies, saveCookies, getRandomCookie } = require('./cookies');
 const { fetchNoteInfo } = require('./parser');
-const { loadHeaders, updateHeaders, resetHeaders, importCurl } = require('./config');
+const { loadHeaders, updateHeaders, resetHeaders, importCurl, loadSiteConfig, saveSiteConfig } = require('./config');
 
 function registerRoutes(app) {
   // Cookie management
@@ -95,6 +95,23 @@ function registerRoutes(app) {
         headers: result.headers,
         cookieImported: !!result.cookie,
       });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Site config
+  app.get('/api/site-config', (req, res) => {
+    const config = loadSiteConfig();
+    res.json({ ...config, default: 'xiaohongshu' });
+  });
+
+  app.put('/api/site-config', (req, res) => {
+    try {
+      const { site } = req.body;
+      if (!site) return res.status(400).json({ error: '请提供站点标识' });
+      saveSiteConfig({ site: site.trim() });
+      res.json({ message: '已更新', site: site.trim() });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

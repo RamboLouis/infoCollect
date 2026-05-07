@@ -1,22 +1,27 @@
+const { getSiteDomain } = require('./config');
+
 /**
- * 从给定的 URL 或字符串中提取笔记 ID 及相关信息。
- * 
- * @param {string} url - 待解析的 URL 字符串或笔记 ID。
- * @returns {Object|null} 返回一个包含解析结果的对象，如果无法解析则返回 null。
- *   - 若为短链接，返回 { type: 'short', url: string }
- *   - 若为完整链接或纯 ID，返回 { type: 'full', noteId?: string, fullUrl?: string }
+ * 从URL中提取笔记ID及相关信息
+ * @param {string} url - 需要解析的原始URL字符串或笔记ID
+ * @returns {Object|null} 返回包含类型、笔记ID和完整URL的对象，如果无法解析则返回null
+ *   - type: 'short' 表示短链接，'full' 表示完整链接或直接ID
+ *   - url: 原始短链接（仅当type为'short'时存在）
+ *   - noteId: 提取到的24位十六进制笔记ID（仅当type为'full'时存在）
+ *   - fullUrl: 构造后的完整访问URL（仅当type为'full'时存在）
  */
 function extractNoteId(url) {
   url = url.trim();
-  
+  const site = getSiteDomain();
+
   if (url.includes('xhslink.com')) return { type: 'short', url };
 
+  const escapedSite = site.replace(/\./g, '\\.');
   const patterns = [
-    /(xiaohongshu\.com\/explore\/[a-f0-9]+(?:\?[^ ]*)?)/,
-    /(xiaohongshu\.com\/discovery\/item\/[a-f0-9]+(?:\?[^ ]*)?)/,
-    /(xiaohongshu\.com\/note\/[a-f0-9]+(?:\?[^ ]*)?)/,
+    new RegExp(`(${escapedSite}\\.com\\/explore\\/[a-f0-9]+(?:\\?[^ ]*)?)`),
+    new RegExp(`(${escapedSite}\\.com\\/discovery\\/item\\/[a-f0-9]+(?:\\?[^ ]*)?)`),
+    new RegExp(`(${escapedSite}\\.com\\/note\\/[a-f0-9]+(?:\\?[^ ]*)?)`),
   ];
-  
+
   for (const p of patterns) {
     const m = url.match(p);
     if (m) {
@@ -24,9 +29,9 @@ function extractNoteId(url) {
       return { type: 'full', noteId: noteIdMatch?.[1], fullUrl: `https://www.${m[1]}` };
     }
   }
-  
+
   if (/^[a-f0-9]{24}$/.test(url)) return { type: 'full', noteId: url };
-  
+
   return null;
 }
 
@@ -120,7 +125,7 @@ async function fetchNoteInfo(noteUrl, cookieString) {
     const finalUrl = resp.url;
     const m = finalUrl.match(/explore\/([a-f0-9]+)/);
     if (!m) throw new Error(`短链接解析失败: ${noteUrl}`);
-    targetUrl = `https://www.xiaohongshu.com/explore/${m[1]}`;
+    targetUrl = `https://www.${getSiteDomain()}.com/explore/${m[1]}`;
   } else {
     targetUrl = info.fullUrl;
   }

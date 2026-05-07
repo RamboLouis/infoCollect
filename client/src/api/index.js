@@ -96,6 +96,20 @@ export async function resetHeaders() {
   return resp.json()
 }
 
+export async function getSiteConfig() {
+  const resp = await fetch('/api/site-config')
+  return resp.json()
+}
+
+export async function updateSiteConfig(site) {
+  const resp = await fetch('/api/site-config', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ site }),
+  })
+  return resp.json()
+}
+
 export async function importCurl(curlString) {
   const resp = await fetch('/api/headers/import-curl', {
     method: 'POST',

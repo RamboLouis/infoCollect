@@ -2,24 +2,36 @@ const fs = require('fs');
 const path = require('path');
 
 const CONFIG_FILE = path.join(__dirname, '..', '.headers.json');
+const SITE_CONFIG_FILE = path.join(__dirname, '..', '.site.json');
 
-const DEFAULT_HEADERS = {
-  'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-  'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8',
-  'accept-encoding': 'gzip, deflate, br',
-  'cache-control': 'no-cache',
-  'pragma': 'no-cache',
-  'upgrade-insecure-requests': '1',
-  'sec-ch-ua': '"Chromium";v="147", "Not)A;Brand";v="99"',
-  'sec-ch-ua-mobile': '?0',
-  'sec-ch-ua-platform': '"macOS"',
-  'sec-fetch-dest': 'document',
-  'sec-fetch-mode': 'navigate',
-  'sec-fetch-site': 'same-origin',
-  'sec-fetch-user': '?1',
-  'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
-  'referer': 'https://www.xiaohongshu.com/',
-};
+const DEFAULT_SITE = 'xiaohongshu';
+
+/**
+ * 获取默认的 HTTP 请求头信息
+ * 
+ * 该函数用于生成一套模拟浏览器行为的默认请求头，通常用于服务端发起的 HTTP 请求（如爬虫或代理），
+ * 以提高请求被目标服务器接受的可能性。
+ */
+function getDefaultHeaders() {
+  const site = getSiteDomain();
+  return {
+    'referer': `https://www.${site}.com/`,
+    'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
+    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+    'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8',
+    'accept-encoding': 'gzip, deflate, br',
+    'cache-control': 'no-cache',
+    'pragma': 'no-cache',
+    'upgrade-insecure-requests': '1',
+    'sec-ch-ua': '"Chromium";v="147", "Not)A;Brand";v="99"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"macOS"',
+    'sec-fetch-dest': 'document',
+    'sec-fetch-mode': 'navigate',
+    'sec-fetch-site': 'same-origin',
+    'sec-fetch-user': '?1'
+  };
+}
 
 /**
  * 加载请求头配置信息。
@@ -30,6 +42,7 @@ const DEFAULT_HEADERS = {
  * @returns {Object} 合并后的请求头对象，以默认请求头为基础，叠加配置文件中的自定义项。
  */
 function loadHeaders() {
+  const DEFAULT_HEADERS = getDefaultHeaders();
   if (!fs.existsSync(CONFIG_FILE)) {
     saveHeaders({ ...DEFAULT_HEADERS });
     return { ...DEFAULT_HEADERS };
@@ -72,6 +85,7 @@ function updateHeaders(partial) {
  * @returns {Object} 返回一个包含默认请求头键值对的新对象。
  */
 function resetHeaders() {
+  const DEFAULT_HEADERS = getDefaultHeaders();
   saveHeaders({ ...DEFAULT_HEADERS });
   return { ...DEFAULT_HEADERS };
 }
@@ -134,4 +148,50 @@ function importCurl(curlStr) {
   return { headers: current, cookie: cookie || null };
 }
 
-module.exports = { loadHeaders, saveHeaders, updateHeaders, resetHeaders, getRequestHeaders, importCurl };
+/**
+ * 加载站点配置文件。
+ * 如果配置文件不存在或读取/解析失败，则使用默认配置初始化并返回默认配置。
+ *
+ * @returns {Object} 站点配置对象，包含 site 属性
+ */
+function loadSiteConfig() {
+  if (!fs.existsSync(SITE_CONFIG_FILE)) {
+    saveSiteConfig({ site: DEFAULT_SITE });
+    return { site: DEFAULT_SITE };
+  }
+  try {
+    return JSON.parse(fs.readFileSync(SITE_CONFIG_FILE, 'utf-8'));
+  } catch {
+    return { site: DEFAULT_SITE };
+  }
+}
+
+/**
+ * 将站点配置对象保存为格式化的 JSON 文件。
+ *
+ * @param {Object} config - 要保存的站点配置对象。
+ */
+function saveSiteConfig(config) {
+  fs.writeFileSync(SITE_CONFIG_FILE, JSON.stringify(config, null, 2));
+}
+
+/**
+ * 获取站点域名。
+ * 
+ * @returns {string} 站点域名，优先从站点配置中获取，若不存在则返回默认站点域名。
+ */
+function getSiteDomain() {
+  return loadSiteConfig().site || DEFAULT_SITE;
+}
+
+module.exports = {
+  loadHeaders,
+  saveHeaders,
+  updateHeaders,
+  resetHeaders,
+  getRequestHeaders,
+  importCurl,
+  loadSiteConfig,
+  saveSiteConfig,
+  getSiteDomain
+};
