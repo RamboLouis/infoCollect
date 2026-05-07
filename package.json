@@ -1,0 +1,23 @@
+{
+  "name": "info-collect",
+  "version": "1.0.0",
+  "description": "信息批量获取工具",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"node server/index.js\" \"cd client && vite\"",
+    "build": "cd client && vite build",
+    "start": "lsof -ti :3000 | xargs kill -9 2>/dev/null; node server/index.js",
+    "preview": "cd client && vite preview"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "vue": "^3.4.0",
+    "element-plus": "^2.9.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.0",
+    "concurrently": "^8.2.0",
+    "sass": "^1.80.0",
+    "vite": "^5.4.0"
+  }
+}
