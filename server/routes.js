@@ -115,7 +115,10 @@ function registerRoutes(app) {
     const results = [];
     for (const url of urls) {
       try {
-        if (results.length > 0) await new Promise(r => setTimeout(r, 1500));
+        if (results.length > 0) {
+          const delay = 3000 + Math.random() * 5000;
+          await new Promise(r => setTimeout(r, delay));
+        }
         const cookie = getRandomCookie();
         const data = await fetchNoteInfo(url, cookie);
         results.push({ success: true, data });
@@ -125,6 +128,56 @@ function registerRoutes(app) {
     }
 
     res.json({ results });
+  });
+
+  // Parse with SSE progress
+  app.post('/api/parse-stream', async (req, res) => {
+    const { urls } = req.body;
+    if (!urls || !Array.isArray(urls) || urls.length === 0) {
+      return res.status(400).json({ error: '请提供链接列表' });
+    }
+
+    const cookies = loadCookies();
+    if (cookies.length === 0) {
+      return res.status(400).json({ error: '请先导入 Cookie' });
+    }
+
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+    res.flushHeaders();
+
+    const total = urls.length;
+    const results = [];
+
+    for (let i = 0; i < total; i++) {
+      try {
+        if (i > 0) {
+          const delay = 3000 + Math.random() * 5000;
+          await new Promise(r => setTimeout(r, delay));
+        }
+        const cookie = getRandomCookie();
+        const data = await fetchNoteInfo(urls[i], cookie);
+        results.push({ success: true, data });
+      } catch (err) {
+        results.push({ success: false, url: urls[i], error: err.message });
+      }
+
+      const completed = results.length;
+      const lastResult = results[results.length - 1];
+      res.write(`data: ${JSON.stringify({
+        total,
+        completed,
+        pending: total - completed,
+        result: lastResult,
+      })}\n\n`);
+    }
+
+    res.write(`data: ${JSON.stringify({ done: true, results })}\n\n`);
+    res.end();
   });
 }
 

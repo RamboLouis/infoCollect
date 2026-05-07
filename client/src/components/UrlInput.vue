@@ -41,23 +41,28 @@
       </span>
     </div>
     <input ref="fileInput" type="file" accept=".csv" style="display: none" @change="onFileChange" />
-    <el-progress
-      v-if="loading"
-      :percentage="100"
-      :indeterminate="true"
-      :duration="2"
-      :color="'#ff2442'"
-      style="margin-top: 16px;"
-    />
+    <div v-if="loading" style="margin-top: 16px;">
+      <el-progress
+        :percentage="progressPercent"
+        :color="'#ff2442'"
+        :stroke-width="10"
+      />
+      <div class="progress-info">
+        <span>共 {{ progress.total }} 条</span>
+        <span>已完成 {{ progress.completed }} 条</span>
+        <span>待完成 {{ progress.pending }} 条</span>
+      </div>
+    </div>
   </el-card>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 
 const props = defineProps({
   loading: Boolean,
+  progress: { type: Object, default: () => ({ total: 0, completed: 0, pending: 0 }) },
 })
 
 watch(() => props.loading, (val, oldVal) => {
@@ -67,6 +72,11 @@ watch(() => props.loading, (val, oldVal) => {
 })
 
 const emit = defineEmits(['fetch', 'clear'])
+
+const progressPercent = computed(() => {
+  if (props.progress.total === 0) return 0
+  return Math.round((props.progress.completed / props.progress.total) * 100)
+})
 
 const urlText = ref('')
 const statusText = ref('')
@@ -189,5 +199,13 @@ function downloadTemplate() {
   font-size: 13px;
   color: #999;
   margin-left: 4px;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #666;
 }
 </style>

@@ -36,6 +36,47 @@ export async function parseUrls(urls) {
   return resp.json()
 }
 
+export async function parseUrlsStream(urls, onProgress) {
+  const resp = await fetch('/api/parse-stream', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ urls }),
+  })
+
+  if (!resp.ok) {
+    const err = await resp.json()
+    throw new Error(err.error || '请求失败')
+  }
+
+  const reader = resp.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let finalResults = null
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop()
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue
+      try {
+        const data = JSON.parse(line.slice(6))
+        if (data.done) {
+          finalResults = data.results
+        } else {
+          onProgress(data)
+        }
+      } catch {}
+    }
+  }
+
+  return finalResults
+}
+
 export async function getHeaders() {
   const resp = await fetch('/api/headers')
   return resp.json()

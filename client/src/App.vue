@@ -8,7 +8,7 @@
       </div>
     </el-header>
     <el-main>
-      <UrlInput :loading="loading" @fetch="handleFetch" @clear="handleClear" />
+      <UrlInput :loading="loading" :progress="progress" @fetch="handleFetch" @clear="handleClear" />
       <ResultTable ref="resultTable" :results="results" @delete="handleDelete" />
     </el-main>
   </el-container>
@@ -16,7 +16,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getLoginStatus, parseUrls } from './api'
+import { getLoginStatus, parseUrlsStream } from './api'
 import CookieManager from './components/CookieManager.vue'
 import UrlInput from './components/UrlInput.vue'
 import ResultTable from './components/ResultTable.vue'
@@ -26,6 +26,7 @@ const isLoggedIn = ref(false)
 const cookieCount = ref(0)
 const loading = ref(false)
 const results = ref([])
+const progress = ref({ total: 0, completed: 0, pending: 0 })
 
 async function checkLogin() {
   try {
@@ -41,9 +42,13 @@ async function checkLogin() {
 async function handleFetch(urls) {
   loading.value = true
   results.value = []
+  progress.value = { total: urls.length, completed: 0, pending: urls.length }
   try {
-    const data = await parseUrls(urls)
-    results.value = data.results || []
+    const data = await parseUrlsStream(urls, (p) => {
+      progress.value = { total: p.total, completed: p.completed, pending: p.pending }
+      results.value.push(p.result)
+    })
+    if (data) results.value = data
   } catch (err) {
     results.value = [{ success: false, error: err.message }]
   } finally {

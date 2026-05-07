@@ -125,7 +125,7 @@ async function fetchNoteInfo(noteUrl, cookieString) {
     targetUrl = info.fullUrl;
   }
 
-  const headers = getRequestHeaders(cookieString);
+  const headers = { ...getRequestHeaders(cookieString), referer: targetUrl };
   const resp = await fetch(targetUrl, { headers, redirect: 'follow' });
 
   if (resp.url.includes('/404/') || resp.url.includes('error_code')) {
