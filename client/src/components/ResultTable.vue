@@ -114,6 +114,11 @@ watch([filterAuthor, filterDateRange], () => {
   currentPage.value = 1
 })
 
+function normalizeDate(str) {
+  const parts = str.replace(/\//g, '-').split('-')
+  return parts.map((p, i) => i > 0 ? p.padStart(2, '0') : p).join('-')
+}
+
 const filteredResults = computed(() => {
   return props.results.filter((item) => {
     if (!item.success) return true
@@ -124,7 +129,7 @@ const filteredResults = computed(() => {
     }
 
     if (filterDateRange.value && filterDateRange.value.length === 2 && d.time) {
-      const dateStr = d.time.split(' ')[0].replace(/\//g, '-')
+      const dateStr = normalizeDate(d.time.split(' ')[0])
       const [start, end] = filterDateRange.value
       if (dateStr < start || dateStr > end) return false
     }
