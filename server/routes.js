@@ -16,10 +16,10 @@ function registerRoutes(app) {
 
       const cookie = cookieString.trim();
       const existing = loadCookies();
-      if (existing.includes(cookie)) {
+      if (existing.some(c => (typeof c === 'string' ? c : c.value) === cookie)) {
         return res.json({ message: '该 Cookie 已存在', count: existing.length });
       }
-      existing.push(cookie);
+      existing.push({ value: cookie, createdAt: new Date().toISOString() });
       saveCookies(existing);
 
       res.json({ message: '导入成功', count: existing.length });
@@ -50,7 +50,10 @@ function registerRoutes(app) {
 
   app.get('/api/login-status', (req, res) => {
     const cookies = loadCookies();
-    const hasSession = cookies.some(c => c.includes('web_session') || c.includes('a1'));
+    const hasSession = cookies.some(c => {
+      const val = typeof c === 'string' ? c : c.value;
+      return val.includes('web_session') || val.includes('a1');
+    });
     res.json({ isLoggedIn: hasSession, cookieCount: cookies.length });
   });
 
@@ -84,8 +87,8 @@ function registerRoutes(app) {
       // If curl contains cookies, also save them
       if (result.cookie) {
         const existing = loadCookies();
-        if (!existing.includes(result.cookie)) {
-          existing.push(result.cookie);
+        if (!existing.some(c => (typeof c === 'string' ? c : c.value) === result.cookie)) {
+          existing.push({ value: result.cookie, createdAt: new Date().toISOString() });
           saveCookies(existing);
         }
       }
