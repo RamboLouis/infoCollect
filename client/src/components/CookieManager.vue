@@ -13,13 +13,13 @@
     <el-dialog
       v-model="dialogVisible"
       title="Cookie 管理"
-      width="700px"
+      width="900px"
     >
       <div class="import-section">
         <el-input
           v-model="cookieInput"
           type="textarea"
-          :rows="5"
+          :rows="8"
           placeholder="每次只粘贴一条 Cookie 字符串"
           clearable
         />
@@ -40,17 +40,40 @@
           清空全部
         </el-button>
       </div>
+
+      <el-table :data="paginatedCookies" stripe style="width: 100%" max-height="300">
+        <el-table-column type="index" label="序号" width="60" align="center" />
+        <el-table-column label="Cookie" min-width="200">
+          <template #default="{ row }">
+            <el-tooltip :content="getCookieValue(row)" placement="top" :show-after="300">
+              <span class="cookie-text">{{ maskCookie(getCookieValue(row)) }}</span>
+            </el-tooltip>
+          </template>
+        </el-table-column>
+        <el-table-column label="添加时间" min-width="160" align="center">
+          <template #default="{ row }">
+            {{ formatTime(row.createdAt) || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="150" align="center">
+          <template #default="{ $index }">
+            <el-button type="danger" plain size="small" @click="handleDelete($index)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
       <div v-if="cookies.length === 0" class="empty">
         暂无 Cookie
       </div>
-
-      <div v-else class="cookie-list">
-        <div v-for="(item, index) in cookies" :key="index" class="cookie-item">
-          <el-tooltip :content="item" placement="top" :show-after="300">
-            <span class="cookie-text">{{ maskCookie(item) }}</span>
-          </el-tooltip>
-          <el-button type="danger" plain size="small" @click="handleDelete(index)">删除</el-button>
-        </div>
+      <div class="pagination">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50]"
+          :total="cookies.length"
+          layout="total, sizes, prev, pager, next"
+          small
+        />
       </div>
     </el-dialog>
 
@@ -70,7 +93,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   getCookies,
@@ -95,9 +118,28 @@ const confirmMessage = ref('')
 const confirmLoading = ref(false)
 let pendingAction = null
 
+const currentPage = ref(1)
+const pageSize = ref(10)
+
+const paginatedCookies = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return cookies.value.slice(start, start + pageSize.value)
+})
+
+function getCookieValue(item) {
+  return typeof item === 'string' ? item : item.value || ''
+}
+
 function maskCookie(str) {
-  if (str.length <= 40) return str
+  if (!str || str.length <= 40) return str
   return str.slice(0, 20) + ' ... ' + str.slice(-15)
+}
+
+function formatTime(isoString) {
+  if (!isoString) return ''
+  const d = new Date(isoString)
+  const pad = n => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 async function loadCookies() {
@@ -207,33 +249,20 @@ async function confirmAction() {
   font-size: 14px;
 }
 
-.cookie-list {
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.cookie-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border: 1px solid #f0f0f0;
-  border-radius: 6px;
-  margin-bottom: 8px;
-
-  &:hover {
-    background: #fafafa;
-  }
-}
-
 .cookie-text {
-  flex: 1;
   font-family: monospace;
   font-size: 13px;
   color: #666;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
 }
 </style>
