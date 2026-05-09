@@ -5,7 +5,8 @@
   "main": "server/index.js",
   "scripts": {
     "dev": "concurrently \"node server/index.js\" \"cd client && vite\"",
-    "build": "bash build.sh"
+    "build": "bash build.sh",
+    "start": "node server/index.js"
   },
   "dependencies": {
     "element-plus": "^2.9.0",

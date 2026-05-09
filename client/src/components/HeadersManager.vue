@@ -84,7 +84,12 @@
             {{ formatTime(row.createdAt) || '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" min-width="140" align="center">
+        <el-table-column label="更新时间" min-width="140" align="center">
+          <template #default="{ row }">
+            {{ formatTime(row.updatedAt) || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" min-width="160" align="center">
           <template #default="{ row, $index }">
             <el-button type="primary" plain size="small" @click="handleView(row)">查看</el-button>
             <el-button type="danger" plain size="small" @click="handleDelete($index)">删除</el-button>
@@ -247,7 +252,7 @@ async function handleImportCurl() {
     } else if (data.success === false) {
       ElMessage.warning(data.message || '导入失败')
     } else {
-      let msg = data.message || '导入成功'
+      let msg = data.message || (data.replaced ? '已更新配置' : '导入成功')
       if (data.cookieImported) {
         msg += '，Cookie 已同步导入'
         emit('refresh')

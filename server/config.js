@@ -91,12 +91,18 @@ function loadHeaders() {
 function addHeaders(headers) {
   let list = loadHeadersList();
   if (!Array.isArray(list)) list = [];
-  // 检查是否重复（比较 user-agent）
+  const now = new Date().toISOString();
+  // 检查是否重复（比较 user-agent），重复则替换并更新时间
   const ua = headers['user-agent'];
-  if (ua && list.some(h => h.value && h.value['user-agent'] === ua)) {
-    return { message: '该 Headers 已存在', count: list.length };
+  if (ua) {
+    const idx = list.findIndex(h => h.value && h.value['user-agent'] === ua);
+    if (idx !== -1) {
+      list[idx] = { value: headers, createdAt: list[idx].createdAt, updatedAt: now };
+      saveHeadersList(list);
+      return { message: '已更新配置', count: list.length, replaced: true };
+    }
   }
-  list.push({ value: headers, createdAt: new Date().toISOString() });
+  list.push({ value: headers, createdAt: now });
   saveHeadersList(list);
   return { message: '导入成功', count: list.length };
 }

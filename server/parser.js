@@ -139,10 +139,20 @@ async function fetchNoteInfo(noteUrl, cookieString) {
     throw new Error(errMsg);
   }
 
+  // 检测是否被重定向到登录页（Cookie 过期的典型表现）
+  if (resp.url.includes('/login') || resp.url.includes('passport')) {
+    throw new Error('Cookie 已过期，请更新 Cookie 后重试');
+  }
+
   if (!resp.ok) throw new Error(`请求失败 (${resp.status})`);
 
   const html = await resp.text();
   if (!html || html.length < 1000) throw new Error('返回内容为空，可能被拦截');
+
+  // 检测页面是否包含登录相关提示（未登录状态返回的页面）
+  if (html.includes('login-btn') || html.includes('请登录') || html.includes('未登录')) {
+    throw new Error('Cookie 已失效，请更新 Cookie 后重试');
+  }
 
   const state = parseInitialState(html);
   if (!state) throw new Error('无法解析页面数据，可能需要更新 Cookie');

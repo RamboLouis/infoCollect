@@ -8,6 +8,7 @@ yarn-error.log*
 **/*.log
 
 *.zip
+releases/
 
 
 tests/**/coverage/
