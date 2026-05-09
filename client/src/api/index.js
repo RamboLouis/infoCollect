@@ -82,17 +82,18 @@ export async function getHeaders() {
   return resp.json()
 }
 
-export async function updateHeaders(headers) {
-  const resp = await fetch('/api/headers', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(headers),
-  })
+export async function resetHeaders() {
+  const resp = await fetch('/api/headers/reset', { method: 'POST' })
   return resp.json()
 }
 
-export async function resetHeaders() {
-  const resp = await fetch('/api/headers/reset', { method: 'POST' })
+export async function deleteHeaders(index) {
+  const resp = await fetch(`/api/headers/${index}`, { method: 'DELETE' })
+  return resp.json()
+}
+
+export async function clearHeaders() {
+  const resp = await fetch('/api/headers/clear', { method: 'POST' })
   return resp.json()
 }
 

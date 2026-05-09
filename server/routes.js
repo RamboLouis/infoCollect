@@ -1,6 +1,6 @@
 const { loadCookies, saveCookies, getRandomCookie } = require('./cookies');
 const { fetchNoteInfo } = require('./parser');
-const { loadHeaders, updateHeaders, resetHeaders, importCurl, loadSiteConfig, saveSiteConfig } = require('./config');
+const { loadHeaders, getRandomHeaders, addHeaders, deleteHeaders, clearHeaders, resetHeaders, importCurl, loadSiteConfig, saveSiteConfig } = require('./config');
 
 function registerRoutes(app) {
   // Cookie management
@@ -63,18 +63,25 @@ function registerRoutes(app) {
     res.json({ headers });
   });
 
-  app.put('/api/headers', (req, res) => {
+  app.post('/api/headers/reset', (req, res) => {
+    const headers = resetHeaders();
+    res.json({ message: '已重置为默认值', headers });
+  });
+
+  app.delete('/api/headers/:index', (req, res) => {
     try {
-      const updated = updateHeaders(req.body);
-      res.json({ message: '已更新', headers: updated });
+      const index = parseInt(req.params.index);
+      const result = deleteHeaders(index);
+      if (result.error) return res.status(400).json({ error: result.error });
+      res.json(result);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  app.post('/api/headers/reset', (req, res) => {
-    const headers = resetHeaders();
-    res.json({ message: '已重置为默认值', headers });
+  app.post('/api/headers/clear', (req, res) => {
+    clearHeaders();
+    res.json({ message: '已清空所有 Headers' });
   });
 
   app.post('/api/headers/import-curl', (req, res) => {
