@@ -49,7 +49,7 @@
       </div>
 
       <div class="headers-list-header">
-        <span>已保存的配置（{{ headers.length }} 套）</span>
+        <span>已保存的配置（{{ headers.length }}套）</span>
         <div>
           <el-button
             v-if="headers.length > 0"
@@ -84,8 +84,9 @@
             {{ formatTime(row.createdAt) || '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="100" align="center">
-          <template #default="{ $index }">
+        <el-table-column label="操作" width="140" align="center">
+          <template #default="{ row, $index }">
+            <el-button type="primary" plain size="small" @click="handleView(row)">查看</el-button>
             <el-button type="danger" plain size="small" @click="handleDelete($index)">删除</el-button>
           </template>
         </el-table-column>
@@ -119,6 +120,20 @@
         <el-button type="danger" :loading="confirmLoading" @click="confirmAction">确定</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="viewVisible"
+      title="配置详情"
+      width="600px"
+      append-to-body
+    >
+      <div v-if="viewData" class="view-detail">
+        <div v-for="(value, key) in viewData" :key="key" class="view-item">
+          <span class="view-key">{{ key }}:</span>
+          <span class="view-value">{{ value }}</span>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -148,6 +163,9 @@ const confirmVisible = ref(false)
 const confirmMessage = ref('')
 const confirmLoading = ref(false)
 let pendingAction = null
+
+const viewVisible = ref(false)
+const viewData = ref(null)
 
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -250,6 +268,11 @@ function handleDelete(index) {
   })
 }
 
+function handleView(row) {
+  viewData.value = row.value
+  viewVisible.value = true
+}
+
 function handleClearAll() {
   showConfirm('确定清空所有 Headers 配置？', async () => {
     const data = await clearHeaders()
@@ -345,5 +368,32 @@ async function confirmAction() {
   display: flex;
   justify-content: flex-end;
   margin-top: 12px;
+}
+
+.view-detail {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.view-item {
+  display: flex;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  .view-key {
+    font-weight: 600;
+    color: #333;
+    min-width: 140px;
+    flex-shrink: 0;
+  }
+
+  .view-value {
+    color: #666;
+    word-break: break-all;
+  }
 }
 </style>

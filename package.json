@@ -5,7 +5,7 @@
   "main": "server/index.js",
   "scripts": {
     "dev": "concurrently \"node server/index.js\" \"cd client && vite\"",
-    "build": "cd client && vite build",
+    "build": "cd client && vite build && cd .. && rm -f dist.zip && zip -r dist.zip dist/",
     "start": "node server/index.js",
     "preview": "cd client && vite preview",
     "deploy": "npm run build && pm2 start ecosystem.config.js",
