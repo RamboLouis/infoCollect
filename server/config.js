@@ -89,10 +89,11 @@ function loadHeaders() {
  * @returns {Object} 包含 message 和 count 的结果
  */
 function addHeaders(headers) {
-  const list = loadHeadersList();
+  let list = loadHeadersList();
+  if (!Array.isArray(list)) list = [];
   // 检查是否重复（比较 user-agent）
   const ua = headers['user-agent'];
-  if (ua && list.some(h => h.value['user-agent'] === ua)) {
+  if (ua && list.some(h => h.value && h.value['user-agent'] === ua)) {
     return { message: '该 Headers 已存在', count: list.length };
   }
   list.push({ value: headers, createdAt: new Date().toISOString() });
@@ -150,10 +151,12 @@ function getRequestHeaders(cookieString) {
  */
 function parseCurl(curlStr) {
   const headers = {};
-  const regex = /-H\s+'([^']+)'|-H\s+"([^"]+)"/g;
+  // Handle: 'value', "value", $'value' (with escaped quotes inside)
+  const regex = /-H\s+\$?'((?:[^'\\]|\\.)*)'|-H\s+"((?:[^"\\]|\\.)*)"/g;
   let match;
   while ((match = regex.exec(curlStr)) !== null) {
-    const header = match[1] || match[2];
+    const raw = match[1] !== undefined ? match[1] : match[2];
+    const header = raw.replace(/\\(.)/g, '$1');
     const colonIndex = header.indexOf(':');
     if (colonIndex > 0) {
       const key = header.slice(0, colonIndex).trim().toLowerCase();
@@ -161,11 +164,12 @@ function parseCurl(curlStr) {
       headers[key] = value;
     }
   }
-  // Extract cookies from -b flag
-  const cookieRegex = /-b\s+'([^']+)'|-b\s+"([^"]+)"/;
+  // Extract cookies from -b flag (also handle escaped quotes and $'...')
+  const cookieRegex = /-b\s+\$?'((?:[^'\\]|\\.)*)'|-b\s+"((?:[^"\\]|\\.)*)"/;
   const cookieMatch = curlStr.match(cookieRegex);
   if (cookieMatch) {
-    headers['cookie'] = cookieMatch[1] || cookieMatch[2];
+    const raw = cookieMatch[1] !== undefined ? cookieMatch[1] : cookieMatch[2];
+    headers['cookie'] = raw.replace(/\\(.)/g, '$1');
   }
   return headers;
 }
@@ -178,7 +182,9 @@ function parseCurl(curlStr) {
 function importCurl(curlStr) {
   const parsed = parseCurl(curlStr);
   const { cookie, ...headers } = parsed;
-  // 添加到 headers 列表
+  if (Object.keys(headers).length === 0) {
+    return { message: '未能从 curl 中解析到请求头，请检查格式', count: 0, cookie: null };
+  }
   const result = addHeaders(headers);
   return { ...result, cookie: cookie || null };
 }

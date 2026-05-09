@@ -101,8 +101,8 @@ function registerRoutes(app) {
       }
 
       res.json({
-        message: '已导入',
-        headers: result.headers,
+        success: result.count > 0,
+        message: result.message,
         cookieImported: !!result.cookie,
       });
     } catch (err) {

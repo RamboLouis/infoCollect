@@ -49,7 +49,7 @@
       </div>
 
       <div class="headers-list-header">
-        <span>已保存的配置（{{ headers.length }}套）</span>
+        <span>已保存的配置（{{ headers.length || 0 }}套）</span>
         <div>
           <el-button
             v-if="headers.length > 0"
@@ -84,7 +84,7 @@
             {{ formatTime(row.createdAt) || '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="140" align="center">
+        <el-table-column label="操作" min-width="140" align="center">
           <template #default="{ row, $index }">
             <el-button type="primary" plain size="small" @click="handleView(row)">查看</el-button>
             <el-button type="danger" plain size="small" @click="handleDelete($index)">删除</el-button>
@@ -191,7 +191,15 @@ function formatTime(isoString) {
 async function loadHeadersList() {
   try {
     const data = await getHeaders()
-    headers.value = data.headers || []
+    const raw = data.headers
+    // 兼容旧格式（单个对象）和新格式（数组）
+    if (Array.isArray(raw)) {
+      headers.value = raw
+    } else if (raw && typeof raw === 'object' && Object.keys(raw).length > 0) {
+      headers.value = [{ value: raw, createdAt: '' }]
+    } else {
+      headers.value = []
+    }
   } catch {
     headers.value = []
   }
@@ -236,6 +244,8 @@ async function handleImportCurl() {
     const data = await importCurl(input)
     if (data.error) {
       ElMessage.error(data.error)
+    } else if (data.success === false) {
+      ElMessage.warning(data.message || '导入失败')
     } else {
       let msg = data.message || '导入成功'
       if (data.cookieImported) {
