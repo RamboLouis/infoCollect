@@ -43,7 +43,7 @@ info_collect/
 |------|------|
 | 前端框架 | Vue 3 (Composition API) |
 | UI 组件库 | Element Plus |
-| 构建工具 | Vite 5 |
+| 构建工具 | Vite 4 |
 | 样式 | SCSS |
 | 后端框架 | Express.js 4 |
 | 实时通信 | SSE (Server-Sent Events) |
@@ -94,8 +94,8 @@ info_collect/
 
 ### 环境要求
 
-- Node.js >= 18
-- npm >= 8
+- Node.js: 16.x（推荐 16.20.2）
+- npm: 8.x
 
 ### 开发模式
 
@@ -108,7 +108,7 @@ cd client && npm install && cd ..
 npm run dev
 ```
 
-访问 http://localhost:5173
+访问 http://localhost:5188
 
 ### 生产部署
 
@@ -117,7 +117,7 @@ npm run dev
 npm run deploy
 ```
 
-访问 http://localhost:3000
+访问 http://localhost:6789
 
 ### 常用命令
 
