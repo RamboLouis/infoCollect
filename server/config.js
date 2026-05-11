@@ -8,9 +8,6 @@ const DEFAULT_SITE = 'xiaohongshu';
 
 /**
  * 获取默认的 HTTP 请求头信息
- * 
- * 该函数用于生成一套模拟浏览器行为的默认请求头，通常用于服务端发起的 HTTP 请求（如爬虫或代理），
- * 以提高请求被目标服务器接受的可能性。
  */
 function getDefaultHeaders() {
   const site = getSiteDomain();
@@ -34,69 +31,122 @@ function getDefaultHeaders() {
 }
 
 /**
- * 加载请求头配置信息。
- * 
- * 该函数尝试从配置文件中读取自定义请求头，并将其与默认请求头合并。
- * 如果配置文件不存在或解析失败，则返回仅包含默认请求头的对象。
- * 
- * @returns {Object} 合并后的请求头对象，以默认请求头为基础，叠加配置文件中的自定义项。
+ * 加载所有 headers 配置列表
+ * @returns {Array} headers 配置数组
  */
-function loadHeaders() {
-  const DEFAULT_HEADERS = getDefaultHeaders();
+function loadHeadersList() {
   if (!fs.existsSync(CONFIG_FILE)) {
-    saveHeaders({ ...DEFAULT_HEADERS });
-    return { ...DEFAULT_HEADERS };
+    const defaultHeaders = getDefaultHeaders();
+    const list = [{ value: defaultHeaders, createdAt: new Date().toISOString() }];
+    saveHeadersList(list);
+    return list;
   }
   try {
     const data = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
-    return { ...DEFAULT_HEADERS, ...data };
+    // 兼容旧格式（单个对象）
+    if (!Array.isArray(data)) {
+      const list = [{ value: data, createdAt: new Date().toISOString() }];
+      saveHeadersList(list);
+      return list;
+    }
+    return data;
   } catch {
-    return { ...DEFAULT_HEADERS };
+    const defaultHeaders = getDefaultHeaders();
+    return [{ value: defaultHeaders, createdAt: new Date().toISOString() }];
   }
 }
 
 /**
- * 将请求头信息保存到配置文件中
- * @param {Object} headers - 需要保存的请求头对象
+ * 保存 headers 配置列表
+ * @param {Array} list - headers 配置数组
  */
-function saveHeaders(headers) {
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify(headers, null, 2));
+function saveHeadersList(list) {
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(list, null, 2));
 }
 
 /**
- * 更新请求头信息
- * 
- * @param {Object} partial - 需要更新的头部字段对象，其属性将覆盖现有头部中的同名属性
- * @returns {Object} 更新后的完整头部对象
+ * 随机获取一套 headers
+ * @returns {Object} 随机选中的 headers 对象
  */
-function updateHeaders(partial) {
-  const current = loadHeaders();
-  const updated = { ...current, ...partial };
-  saveHeaders(updated);
-  return updated;
+function getRandomHeaders() {
+  const list = loadHeadersList();
+  if (list.length === 0) return getDefaultHeaders();
+  const picked = list[Math.floor(Math.random() * list.length)];
+  return { ...getDefaultHeaders(), ...picked.value };
 }
 
 /**
- * 重置请求头为默认值。
- * 
- * 该函数将当前的请求头恢复为默认的 DEFAULT_HEADERS 配置，
- * 并返回一份默认请求头的副本。
- * 
- * @returns {Object} 返回一个包含默认请求头键值对的新对象。
+ * 获取所有 headers 配置（用于前端展示）
+ * @returns {Array} headers 配置数组
+ */
+function loadHeaders() {
+  return loadHeadersList();
+}
+
+/**
+ * 添加新的 headers 配置
+ * @param {Object} headers - 新的 headers 对象
+ * @returns {Object} 包含 message 和 count 的结果
+ */
+function addHeaders(headers) {
+  let list = loadHeadersList();
+  if (!Array.isArray(list)) list = [];
+  const now = new Date().toISOString();
+  // 检查是否重复（比较 user-agent），重复则替换并更新时间
+  const ua = headers['user-agent'];
+  if (ua) {
+    const idx = list.findIndex(h => h.value && h.value['user-agent'] === ua);
+    if (idx !== -1) {
+      list[idx] = { value: headers, createdAt: list[idx].createdAt, updatedAt: now };
+      saveHeadersList(list);
+      return { message: '已更新配置', count: list.length, replaced: true };
+    }
+  }
+  list.push({ value: headers, createdAt: now });
+  saveHeadersList(list);
+  return { message: '导入成功', count: list.length };
+}
+
+/**
+ * 删除指定索引的 headers 配置
+ * @param {number} index - 要删除的索引
+ * @returns {Object} 包含 message 和 count 的结果
+ */
+function deleteHeaders(index) {
+  const list = loadHeadersList();
+  if (index < 0 || index >= list.length) {
+    return { error: '无效的索引' };
+  }
+  list.splice(index, 1);
+  saveHeadersList(list);
+  return { message: '已删除', count: list.length };
+}
+
+/**
+ * 清空所有 headers 配置
+ */
+function clearHeaders() {
+  saveHeadersList([]);
+}
+
+/**
+ * 重置为默认 headers
+ * @returns {Object} 默认 headers
  */
 function resetHeaders() {
-  const DEFAULT_HEADERS = getDefaultHeaders();
-  saveHeaders({ ...DEFAULT_HEADERS });
-  return { ...DEFAULT_HEADERS };
+  const defaultHeaders = getDefaultHeaders();
+  const list = [{ value: defaultHeaders, createdAt: new Date().toISOString() }];
+  saveHeadersList(list);
+  return defaultHeaders;
 }
 
 /**
- * 构建包含 Cookie 的请求头对象
+ * 构建包含 Cookie 的请求头对象（使用随机 headers）
  * @param {string} cookieString - 需要添加到请求头中的 Cookie 字符串
- * @returns {Object} 合并了基础头部信息和指定 Cookie 的请求头对象
+ * @returns {Object} 合并了随机 headers 和指定 Cookie 的请求头对象
  */
 function getRequestHeaders(cookieString) {
-  const headers = loadHeaders();
+  const headers = getRandomHeaders();
   return { ...headers, cookie: cookieString };
 }
 
@@ -107,10 +157,12 @@ function getRequestHeaders(cookieString) {
  */
 function parseCurl(curlStr) {
   const headers = {};
-  const regex = /-H\s+'([^']+)'|-H\s+"([^"]+)"/g;
+  // Handle: 'value', "value", $'value' (with escaped quotes inside)
+  const regex = /-H\s+\$?'((?:[^'\\]|\\.)*)'|-H\s+"((?:[^"\\]|\\.)*)"/g;
   let match;
   while ((match = regex.exec(curlStr)) !== null) {
-    const header = match[1] || match[2];
+    const raw = match[1] !== undefined ? match[1] : match[2];
+    const header = raw.replace(/\\(.)/g, '$1');
     const colonIndex = header.indexOf(':');
     if (colonIndex > 0) {
       const key = header.slice(0, colonIndex).trim().toLowerCase();
@@ -118,41 +170,34 @@ function parseCurl(curlStr) {
       headers[key] = value;
     }
   }
-  // Extract cookies from -b flag
-  const cookieRegex = /-b\s+'([^']+)'|-b\s+"([^"]+)"/;
+  // Extract cookies from -b flag (also handle escaped quotes and $'...')
+  const cookieRegex = /-b\s+\$?'((?:[^'\\]|\\.)*)'|-b\s+"((?:[^"\\]|\\.)*)"/;
   const cookieMatch = curlStr.match(cookieRegex);
   if (cookieMatch) {
-    headers['cookie'] = cookieMatch[1] || cookieMatch[2];
+    const raw = cookieMatch[1] !== undefined ? cookieMatch[1] : cookieMatch[2];
+    headers['cookie'] = raw.replace(/\\(.)/g, '$1');
   }
   return headers;
 }
 
 /**
- * 从 cURL 命令字符串中导入请求配置。
- * 该函数会解析 cURL 字符串，提取 Cookie，并仅更新 Accept 和 User-Agent 请求头。
- *
+ * 从 cURL 命令字符串中导入请求配置
  * @param {string} curlStr - cURL 命令字符串
- * @returns {Object} 包含处理后的请求头和 Cookie 的对象
- * @returns {Object} return.headers - 更新后的请求头对象
- * @returns {string|null} return.cookie - 提取到的 Cookie 字符串，若不存在则为 null
+ * @returns {Object} 包含处理后的 headers 和 cookie 的对象
  */
 function importCurl(curlStr) {
   const parsed = parseCurl(curlStr);
-  // Remove cookie from headers (managed separately)
-  const { cookie } = parsed;
-  // Only update accept and user-agent from curl
-  const current = loadHeaders();
-  if (parsed['accept']) current['accept'] = parsed['accept'];
-  if (parsed['user-agent']) current['user-agent'] = parsed['user-agent'];
-  saveHeaders(current);
-  return { headers: current, cookie: cookie || null };
+  const { cookie, ...headers } = parsed;
+  if (Object.keys(headers).length === 0) {
+    return { message: '未能从 curl 中解析到请求头，请检查格式', count: 0, cookie: null };
+  }
+  const result = addHeaders(headers);
+  return { ...result, cookie: cookie || null };
 }
 
 /**
- * 加载站点配置文件。
- * 如果配置文件不存在或读取/解析失败，则使用默认配置初始化并返回默认配置。
- *
- * @returns {Object} 站点配置对象，包含 site 属性
+ * 加载站点配置文件
+ * @returns {Object} 站点配置对象
  */
 function loadSiteConfig() {
   if (!fs.existsSync(SITE_CONFIG_FILE)) {
@@ -167,18 +212,16 @@ function loadSiteConfig() {
 }
 
 /**
- * 将站点配置对象保存为格式化的 JSON 文件。
- *
- * @param {Object} config - 要保存的站点配置对象。
+ * 保存站点配置
+ * @param {Object} config - 站点配置对象
  */
 function saveSiteConfig(config) {
   fs.writeFileSync(SITE_CONFIG_FILE, JSON.stringify(config, null, 2));
 }
 
 /**
- * 获取站点域名。
- * 
- * @returns {string} 站点域名，优先从站点配置中获取，若不存在则返回默认站点域名。
+ * 获取站点域名
+ * @returns {string} 站点域名
  */
 function getSiteDomain() {
   return loadSiteConfig().site || DEFAULT_SITE;
@@ -186,8 +229,11 @@ function getSiteDomain() {
 
 module.exports = {
   loadHeaders,
-  saveHeaders,
-  updateHeaders,
+  saveHeadersList,
+  getRandomHeaders,
+  addHeaders,
+  deleteHeaders,
+  clearHeaders,
   resetHeaders,
   getRequestHeaders,
   importCurl,

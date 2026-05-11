@@ -2,9 +2,10 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const { registerRoutes } = require('./routes');
+const pm2Config = require('../ecosystem.config.js');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = pm2Config.apps[0].env.PORT;
 
 app.use(express.json());
 

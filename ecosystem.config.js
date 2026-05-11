@@ -6,7 +6,7 @@ module.exports = {
     script: 'server/index.js',
     cwd: path.resolve(__dirname),
     env: {
-      PORT: 3000,
+      PORT: 6789,
     },
     instances: 1,
     autorestart: true,

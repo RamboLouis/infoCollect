@@ -1,13 +1,14 @@
 .DS_Store
 node_modules/
 dist/
-dist.zip
+info/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 **/*.log
 
 *.zip
+releases/
 
 
 tests/**/coverage/

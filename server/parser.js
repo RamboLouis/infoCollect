@@ -1,3 +1,4 @@
+const fetch = require('node-fetch');
 const { getSiteDomain } = require('./config');
 
 /**
@@ -109,7 +110,7 @@ function extractNoteData(state, noteId) {
  * @returns {Promise<Object>} 返回包含笔记信息的对象
  * @throws {Error} 当解析链接失败、请求失败或无法提取笔记信息时抛出错误
  */
-const { getRequestHeaders, loadHeaders } = require('./config');
+const { getRequestHeaders, getRandomHeaders } = require('./config');
 
 async function fetchNoteInfo(noteUrl, cookieString) {
   const info = extractNoteId(noteUrl);
@@ -117,7 +118,7 @@ async function fetchNoteInfo(noteUrl, cookieString) {
 
   let targetUrl;
   if (info.type === 'short') {
-    const configHeaders = loadHeaders();
+    const configHeaders = getRandomHeaders();
     const resp = await fetch(info.url, {
       redirect: 'follow',
       headers: { 'User-Agent': configHeaders['user-agent'] },
@@ -139,10 +140,20 @@ async function fetchNoteInfo(noteUrl, cookieString) {
     throw new Error(errMsg);
   }
 
+  // 检测是否被重定向到登录页（Cookie 过期的典型表现）
+  if (resp.url.includes('/login') || resp.url.includes('passport')) {
+    throw new Error('Cookie 已过期，请更新 Cookie 后重试');
+  }
+
   if (!resp.ok) throw new Error(`请求失败 (${resp.status})`);
 
   const html = await resp.text();
   if (!html || html.length < 1000) throw new Error('返回内容为空，可能被拦截');
+
+  // 检测页面是否包含登录相关提示（未登录状态返回的页面）
+  if (html.includes('请登录') || html.includes('未登录')) {
+    throw new Error('Cookie 已失效，请更新 Cookie 后重试');
+  }
 
   const state = parseInitialState(html);
   if (!state) throw new Error('无法解析页面数据，可能需要更新 Cookie');
