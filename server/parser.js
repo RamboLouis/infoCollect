@@ -1,3 +1,4 @@
+const fetch = require('node-fetch');
 const { getSiteDomain } = require('./config');
 
 /**
@@ -109,7 +110,7 @@ function extractNoteData(state, noteId) {
  * @returns {Promise<Object>} 返回包含笔记信息的对象
  * @throws {Error} 当解析链接失败、请求失败或无法提取笔记信息时抛出错误
  */
-const { getRequestHeaders, loadHeaders } = require('./config');
+const { getRequestHeaders, getRandomHeaders } = require('./config');
 
 async function fetchNoteInfo(noteUrl, cookieString) {
   const info = extractNoteId(noteUrl);
@@ -117,7 +118,7 @@ async function fetchNoteInfo(noteUrl, cookieString) {
 
   let targetUrl;
   if (info.type === 'short') {
-    const configHeaders = loadHeaders();
+    const configHeaders = getRandomHeaders();
     const resp = await fetch(info.url, {
       redirect: 'follow',
       headers: { 'User-Agent': configHeaders['user-agent'] },
