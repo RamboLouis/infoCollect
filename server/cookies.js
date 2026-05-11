@@ -40,7 +40,8 @@ function getRandomCookie() {
   const cookies = loadCookies();
   // 如果没有可用的 Cookie，直接返回 null
   if (cookies.length === 0) return null;
-  return cookies[Math.floor(Math.random() * cookies.length)];
+  const picked = cookies[Math.floor(Math.random() * cookies.length)];
+  return typeof picked === 'string' ? picked : picked.value;
 }
 
 module.exports = {

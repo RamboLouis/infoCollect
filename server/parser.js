@@ -151,7 +151,7 @@ async function fetchNoteInfo(noteUrl, cookieString) {
   if (!html || html.length < 1000) throw new Error('返回内容为空，可能被拦截');
 
   // 检测页面是否包含登录相关提示（未登录状态返回的页面）
-  if (html.includes('login-btn') || html.includes('请登录') || html.includes('未登录')) {
+  if (html.includes('请登录') || html.includes('未登录')) {
     throw new Error('Cookie 已失效，请更新 Cookie 后重试');
   }
 
